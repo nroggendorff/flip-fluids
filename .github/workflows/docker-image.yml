@@ -20,9 +20,9 @@ jobs:
 
       - name: Build the Docker Image
         run: |
-          docker build . \
-            -f Dockerfile \
-            -t $IMAGE_TAG \
+          docker build . `
+            -f Dockerfile `
+            -t $IMAGE_TAG `
             --load
 
       - name: Create Docker Container
