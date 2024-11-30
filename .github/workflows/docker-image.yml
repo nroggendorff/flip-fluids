@@ -20,23 +20,21 @@ jobs:
 
       - name: Build the Docker Image
         run: |
-          docker build . `
-          -f Dockerfile `
-          -t $IMAGE_TAG
+          docker build . -f Dockerfile -t $env:IMAGE_TAG
 
       - name: Create Docker Container
         id: create-container
         run: |
-          CONTAINER_ID=$(docker create $IMAGE_TAG)
-          echo "CONTAINER_ID=$CONTAINER_ID" >> $GITHUB_ENV
+          $containerId = docker create $env:IMAGE_TAG
+          echo "CONTAINER_ID=$containerId" >> $env:GITHUB_ENV
 
       - name: Copy Plugin Directory from Docker Container
         run: |
-          docker cp ${{ env.CONTAINER_ID }}:/build/bl_flip_fluids/flip_fluids_addon ./flip_fluids
+          docker cp $env:CONTAINER_ID:/build/bl_flip_fluids/flip_fluids_addon ./flip_fluids
 
       - name: Zip the Plugin Directory
         run: |
-          zip -r flip_fluids.zip flip_fluids
+          Compress-Archive -Path flip_fluids -DestinationPath flip_fluids.zip
 
       - name: Upload ZIP as Artifact
         uses: actions/upload-artifact@v3
@@ -46,4 +44,4 @@ jobs:
 
       - name: Cleanup Docker Container
         run: |
-          docker rm ${{ env.CONTAINER_ID }}
+          docker rm $env:CONTAINER_ID
