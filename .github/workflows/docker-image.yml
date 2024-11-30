@@ -18,8 +18,8 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
-      - name:
-        run: docker pull mcr.microsoft.com/windows/servercore:ltsc2025
+      - name: Pull msw/servercore
+        run: docker pull mcr.microsoft.com/windows/servercore:ltsc2025-amd64
 
       - name: Build the Docker Image
         run: |
