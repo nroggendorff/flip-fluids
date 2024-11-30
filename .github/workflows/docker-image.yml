@@ -15,15 +15,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
       - name: Pull msw/servercore
         run: docker pull mcr.microsoft.com/windows/servercore:ltsc2025-amd64
 
       - name: Build the Docker Image
         run: |
-          docker buildx build . \
+          docker build . \
             -f Dockerfile \
             -t $IMAGE_TAG \
             --load
