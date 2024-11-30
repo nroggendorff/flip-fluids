@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Pull msw/servercore
-        run: docker pull mcr.microsoft.com/windows/servercore:ltsc2025-amd64
+        run: docker pull mcr.microsoft.com/windows/servercore:ltsc2022-amd64
 
       - name: Build the Docker Image
         run: |
