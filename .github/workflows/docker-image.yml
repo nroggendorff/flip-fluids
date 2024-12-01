@@ -22,22 +22,14 @@ jobs:
         run: |
           docker build -f Dockerfile -t $env:IMAGE_TAG .
 
-      - name: Create Docker Container
-        shell: powershell
+      - name: Run the Docker Image
         run: |
-          $containerId = docker create $env:IMAGE_TAG
-          echo "CONTAINER_ID=$containerId" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8
-          Write-Host "Created Container ID: $containerId"
-
-      - name: Verify Container ID
-        shell: powershell
-        run: |
-          Write-Host "Using Container ID: $env:CONTAINER_ID"
+          docker run $env:IMAGE_TAG
 
       - name: Copy Plugin Directory from Docker Container
         shell: powershell
         run: |
-          docker cp $env:CONTAINER_ID:/build/bl_flip_fluids/flip_fluids_addon ./flip_fluids
+          docker cp "$(docker ps -aq --filter "ancestor=$env:IMAGE_TAG"):/build/bl_flip_fluids/flip_fluids_addon" "./flip_fluids"
 
       - name: Zip the Plugin Directory
         shell: powershell
@@ -49,8 +41,3 @@ jobs:
         with:
           name: flip_fluids
           path: flip_fluids.zip
-
-      - name: Cleanup Docker Container
-        shell: powershell
-        run: |
-          docker rm $env:CONTAINER_ID
