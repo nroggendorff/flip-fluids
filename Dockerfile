@@ -6,7 +6,7 @@ RUN powershell -Command \
     iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
 
 RUN choco install -y mingw cmake.portable git
-ENV PATH="${PATH};C:\\ProgramData\\mingw64\\mingw64\\bin"
+ENV PATH="C:\\ProgramData\\mingw64\\mingw64\\bin;%PATH%"
 
 RUN cmake --version && gcc --version
 
