@@ -6,9 +6,6 @@ RUN powershell -Command \
     iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
 
 RUN choco install -y mingw cmake git
-
-RUN setx /M PATH "%PATH%;C:\tools\mingw64\bin"
-
 RUN cmake --version && gcc --version
 
 RUN git clone https://github.com/rlguy/Blender-FLIP-Fluids.git /flop
@@ -16,6 +13,6 @@ RUN copy flop\cmake\CMakeLists.txt flop
 
 WORKDIR /flop/build
 
-RUN cmake.exe -G "MinGW Makefiles" ..
+RUN C:\tools\mingw64\bin\cmake.exe -G "MinGW Makefiles" ..
 
-CMD ["cmake.exe --build", "."]
+CMD ["C:\tools\mingw64\bin\cmake.exe --build", "."]
