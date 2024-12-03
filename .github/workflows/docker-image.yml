@@ -16,35 +16,35 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Build the Docker Image
-        if: startsWith(github.event.head_commit.message, 'act on ')
+        if: startsWith(github.event.head_commit.message, 'act on ') || startsWith(github.event.pull_request.title, 'act on ')
         run: |
           docker build -f Dockerfile -t $env:IMAGE_TAG .
 
       - name: Run the Docker Image
-        if: startsWith(github.event.head_commit.message, 'act on ')
+        if: startsWith(github.event.head_commit.message, 'act on ') || startsWith(github.event.pull_request.title, 'act on ')
         run: |
           docker run $env:IMAGE_TAG
 
       - name: Copy Plugin Directory from Docker Container
-        if: startsWith(github.event.head_commit.message, 'act on ')
+        if: startsWith(github.event.head_commit.message, 'act on ') || startsWith(github.event.pull_request.title, 'act on ')
         shell: powershell
         run: |
           docker cp "$(docker ps -aq --filter "ancestor=$env:IMAGE_TAG"):/flop/build/bl_flip_fluids/flip_fluids_addon" "./flip_fluids"
 
       - name: Add Debug Lib Files
-        if: startsWith(github.event.head_commit.message, 'act on ')
+        if: startsWith(github.event.head_commit.message, 'act on ') || startsWith(github.event.pull_request.title, 'act on ')
         run: |
           copy .\flip_fluids\pyfluid\lib\libblpyfluidrelease.dll .\flip_fluids\pyfluid\lib\libblpyfluiddebug.dll && `
           copy .\flip_fluids\pyfluid\lib\libblpyfluidrelease.dll.a .\flip_fluids\pyfluid\lib\libblpyfluiddebug.dll.a
 
       - name: Zip the Plugin Directory
-        if: startsWith(github.event.head_commit.message, 'act on ')
+        if: startsWith(github.event.head_commit.message, 'act on ') || startsWith(github.event.pull_request.title, 'act on ')
         shell: powershell
         run: |
           Compress-Archive flip_fluids\* flip_fluids.zip
 
       - name: Upload ZIP as Artifact
-        if: startsWith(github.event.head_commit.message, 'act on ')
+        if: startsWith(github.event.head_commit.message, 'act on ') || startsWith(github.event.pull_request.title, 'act on ')
         uses: actions/upload-artifact@v4
         with:
           name: flip_fluids
