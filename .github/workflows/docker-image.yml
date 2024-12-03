@@ -29,7 +29,7 @@ jobs:
       - name: Copy Plugin Directory from Docker Container
         shell: powershell
         run: |
-          docker cp "$(docker ps -aq --filter "ancestor=$env:IMAGE_TAG"):/build/bl_flip_fluids/flip_fluids_addon" "./flip_fluids"
+          docker cp "$(docker ps -aq --filter "ancestor=$env:IMAGE_TAG"):/flop/build/bl_flip_fluids/flip_fluids_addon" "./flip_fluids"
 
       - name: Zip the Plugin Directory
         shell: powershell
