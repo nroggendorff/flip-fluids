@@ -15,10 +15,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Pull msw/servercore
-        if: startsWith(github.event.head_commit.message, 'act on ') || startsWith(github.event.pull_request.title, 'act on ')
-        run: docker pull mcr.microsoft.com/windows/servercore:ltsc2022-amd64
-
       - name: Build the Docker Image
         if: startsWith(github.event.head_commit.message, 'act on ') || startsWith(github.event.pull_request.title, 'act on ')
         run: |
@@ -41,15 +37,9 @@ jobs:
           copy .\flip_fluids\pyfluid\lib\libblpyfluidrelease.dll .\flip_fluids\pyfluid\lib\libblpyfluiddebug.dll && `
           copy .\flip_fluids\pyfluid\lib\libblpyfluidrelease.dll.a .\flip_fluids\pyfluid\lib\libblpyfluiddebug.dll.a
 
-      - name: Zip the Plugin Directory
-        if: startsWith(github.event.head_commit.message, 'act on ') || startsWith(github.event.pull_request.title, 'act on ')
-        shell: powershell
-        run: |
-          Compress-Archive -Path flip_fluids -DestinationPath flip_fluids.zip
-
       - name: Upload ZIP as Artifact
         if: startsWith(github.event.head_commit.message, 'act on ') || startsWith(github.event.pull_request.title, 'act on ')
         uses: actions/upload-artifact@v4
         with:
           name: flip_fluids
-          path: flip_fluids.zip
+          path: flip_fluids\*
