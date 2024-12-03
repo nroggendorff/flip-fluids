@@ -69,4 +69,4 @@ copy .\flip_fluids\pyfluid\lib\libblpyfluidrelease.dll.a .\flip_fluids\pyfluid\l
 
 - Build the debug.dll files automatically
 
-Feel free to customize the Dockerfile to suit your specific requirements, and if you make an improvement that'll help the community, see [CONTRIBUTE.md](./CONTRIBUTING.md).
+Feel free to customize the Dockerfile to suit your specific requirements, and if you make an improvement that'll help the community, see the [CONTRIBUTING documentation](./CONTRIBUTING.md).
