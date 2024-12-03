@@ -11,7 +11,7 @@ RUN setx /M PATH "%PATH%;C:\\ProgramData\\mingw64\\mingw64\\bin"
 RUN cmake --version && gcc --version
 
 RUN git clone https://github.com/rlguy/Blender-FLIP-Fluids.git /flop
-COPY flop/cmake/CMakeLists.txt /flop/CMakeLists.txt
+RUN copy flop\cmake\CMakeLists.txt flop
 
 WORKDIR /flop/build
 
