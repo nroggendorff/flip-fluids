@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    if: startsWith(github.event.head_commit.message, 'act on ') || startsWith(github.event.pull_request.title, 'act on ')
+    if: ${{ !startsWith(github.event.head_commit.message, '#') }}
     runs-on: windows-latest
     env:
       IMAGE_TAG: make-flippy:${{ github.sha }}
