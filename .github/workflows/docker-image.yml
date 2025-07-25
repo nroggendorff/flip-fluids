@@ -37,8 +37,51 @@ jobs:
           copy .\flip_fluids\pyfluid\lib\libblpyfluidrelease.dll .\flip_fluids\pyfluid\lib\libblpyfluiddebug.dll && `
           copy .\flip_fluids\pyfluid\lib\libblpyfluidrelease.dll.a .\flip_fluids\pyfluid\lib\libblpyfluiddebug.dll.a
 
-      - name: Upload ZIP as Artifact
-        uses: actions/upload-artifact@v4
+      - name: Create ZIP Archive
+        shell: powershell
+        run: |
+          Compress-Archive -Path "flip_fluids\*" -DestinationPath "flip_fluids.zip"
+
+      - name: Generate Tag Name
+        id: tag
+        shell: powershell
+        run: |
+          $timestamp = Get-Date -Format "yyyy.MM.dd.HHmm"
+          $short_sha = "${{ github.sha }}".Substring(0,7)
+          $tag_name = "v$timestamp-$short_sha"
+          echo "tag_name=$tag_name" >> $env:GITHUB_OUTPUT
+          echo "timestamp=$timestamp" >> $env:GITHUB_OUTPUT
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          name: flip_fluids
-          path: flip_fluids\*
+          tag_name: ${{ steps.tag.outputs.tag_name }}
+          release_name: FLIP Fluids Build ${{ steps.tag.outputs.timestamp }}
+          body: |
+            🌊 **FLIP Fluids Addon Build**
+
+            Automated build from commit `${{ github.sha }}`
+
+            Build your own [here](https://github.com/rlguy/Blender-FLIP-Fluids), or buy the full version [here](https://blendermarket.com/products/flipfluids). As far as I know, the only difference is that the paid version has premade materials.
+
+            **Build Information:**
+            - Commit: ${{ github.sha }}
+            - Branch: ${{ github.ref_name }}
+            - Build Date: ${{ steps.tag.outputs.timestamp }}
+
+            **Full Changelog**: https://github.com/nroggendorff/flip-fluids/compare/v1.0.0...${{ github.sha }}
+          draft: false
+          prerelease: false
+
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./flip_fluids.zip
+          asset_name: flip_fluids_${{ steps.tag.outputs.tag_name }}.zip
+          asset_content_type: application/zip
