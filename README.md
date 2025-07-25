@@ -42,15 +42,6 @@ The build will produce the compiled files for the FLIP Fluids add-on, ready for 
 docker cp "$(docker ps -aq --filter "ancestor=$env:IMAGE_TAG"):/flop/build/bl_flip_fluids/flip_fluids_addon" "./flip_fluids"
 ```
 
-### 5. Add Debug Lib Files
-
-As of now, the builder doesn't include the actual debug files, so we will fake it by using the production files instead.
-
-```bash
-copy .\flip_fluids\pyfluid\lib\libblpyfluidrelease.dll .\flip_fluids\pyfluid\lib\libblpyfluiddebug.dll
-copy .\flip_fluids\pyfluid\lib\libblpyfluidrelease.dll.a .\flip_fluids\pyfluid\lib\libblpyfluiddebug.dll.a
-```
-
 ## How It Works
 
 1. **Base Image**: Uses Microsoft's `windows/servercore:ltsc2022-amd64` as the base image for a lightweight Windows environment.
@@ -64,9 +55,5 @@ copy .\flip_fluids\pyfluid\lib\libblpyfluidrelease.dll.a .\flip_fluids\pyfluid\l
 
 - Ensure your Docker host supports Windows containers.
 - If any issues arise with dependencies or build processes, refer to the official FLIP Fluids repository for additional instructions and support.
-
-## Future Improvements
-
-- Build the debug.dll files automatically
 
 Feel free to customize the Dockerfile to suit your specific requirements, and if you make an improvement that'll help the community, see the [CONTRIBUTING documentation](./CONTRIBUTING.md).

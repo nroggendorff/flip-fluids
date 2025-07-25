@@ -7,10 +7,11 @@ on:
     branches: ["main"]
   workflow_dispatch:
   schedule:
-    - cron: '0 0 * * 3'
+    - cron: "0 0 * * 3"
 
 jobs:
   build:
+    permissions: write-all
     if: ${{ !startsWith(github.event.head_commit.message, '#') }}
     runs-on: windows-latest
     env:
@@ -31,11 +32,6 @@ jobs:
         shell: powershell
         run: |
           docker cp "$(docker ps -aq --filter "ancestor=$env:IMAGE_TAG"):/flop/build/bl_flip_fluids/flip_fluids_addon" "./flip_fluids"
-
-      - name: Add Debug Lib Files
-        run: |
-          copy .\flip_fluids\pyfluid\lib\libblpyfluidrelease.dll .\flip_fluids\pyfluid\lib\libblpyfluiddebug.dll && `
-          copy .\flip_fluids\pyfluid\lib\libblpyfluidrelease.dll.a .\flip_fluids\pyfluid\lib\libblpyfluiddebug.dll.a
 
       - name: Create ZIP Archive
         shell: powershell
