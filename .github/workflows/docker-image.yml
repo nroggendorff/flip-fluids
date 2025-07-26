@@ -68,7 +68,7 @@ jobs:
             - Branch: ${{ github.ref_name }}
             - Build Date: ${{ steps.tag.outputs.timestamp }}
 
-            **Full Changelog**: https://github.com/nroggendorff/flip-fluids/compare/v1.0.0...${{ github.sha }}
+            **Full Changelog**: https://github.com/nroggendorff/flip-fluids/compare/${{ steps.tag.outputs.tag_name }}...${{ github.sha }}
           draft: false
           prerelease: false
 
