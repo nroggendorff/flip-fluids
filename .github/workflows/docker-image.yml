@@ -10,40 +10,132 @@ on:
     - cron: "0 0 * * 3"
 
 jobs:
+  check-upstream:
+    runs-on: ubuntu-latest
+    outputs:
+      has-update: ${{ steps.check.outputs.has-update }}
+      upstream-sha: ${{ steps.upstream.outputs.upstream-sha }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get current upstream SHA
+        id: upstream
+        run: |
+          UPSTREAM_SHA=$(git ls-remote https://github.com/rlguy/Blender-FLIP-Fluids.git refs/heads/master | cut -f1 || true)
+          if [ -z "$UPSTREAM_SHA" ]; then
+            echo "ERROR: Could not fetch upstream SHA. Check network or repo access."
+            exit 1
+          fi
+          echo "upstream-sha=$UPSTREAM_SHA" >> $GITHUB_OUTPUT
+          echo "Current upstream SHA: $UPSTREAM_SHA"
+
+      - name: Get last processed upstream SHA from latest release
+        id: last-processed
+        run: |
+          LATEST_JSON=$(curl -s "https://api.github.com/repos/${{ github.repository }}/releases/latest")
+          LATEST_TAG=$(echo "$LATEST_JSON" | jq -r '.tag_name // empty')
+          LAST_SHA=$(echo "$LATEST_JSON" | jq -r '.body // empty' | grep -oE '[a-f0-9]{7,40}' | head -n1 || true)
+          if [ -z "$LAST_SHA" ]; then
+            LAST_SHA=$(echo "$LATEST_TAG" | grep -oE '[a-f0-9]{7,40}' | head -n1 || true)
+          fi
+          if [ -n "$LAST_SHA" ]; then
+            LAST_SHA=${LAST_SHA:0:7}
+            echo "Found last processed SHA (short): $LAST_SHA (from release: $LATEST_TAG)"
+          else
+            echo "No previous release SHA found"
+          fi
+          echo "last-sha=$LAST_SHA" >> $GITHUB_OUTPUT
+
+      - name: Check for upstream updates
+        id: check
+        run: |
+          UPSTREAM_SHA="${{ steps.upstream.outputs.upstream-sha }}"
+          LAST_SHA="${{ steps.last-processed.outputs.last-sha }}"
+          UPSTREAM_SHORT="${UPSTREAM_SHA:0:7}"
+
+          echo "upstream-sha=$UPSTREAM_SHA" >> $GITHUB_OUTPUT
+
+          if [ -z "$UPSTREAM_SHORT" ]; then
+            echo "has-update=false" >> $GITHUB_OUTPUT
+            echo "No upstream SHA found; treating as no update."
+          elif [ "$UPSTREAM_SHORT" != "$LAST_SHA" ]; then
+            echo "has-update=true" >> $GITHUB_OUTPUT
+            echo "upstream-sha=$UPSTREAM_SHA" >> $GITHUB_OUTPUT
+            echo "Upstream has updates: $UPSTREAM_SHORT (was: $LAST_SHA)"
+          else
+            echo "has-update=false" >> $GITHUB_OUTPUT
+            echo "No upstream updates detected - SHA unchanged: $UPSTREAM_SHORT"
+          fi
+
   build:
-    permissions: write-all
-    if: ${{ !startsWith(github.event.head_commit.message, '#') }}
+    needs: check-upstream
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'schedule' && needs.check-upstream.outputs.has-update == 'true') || (github.event_name != 'schedule' && !startsWith(github.event.head_commit.message, '#')) }}
     runs-on: windows-latest
+    permissions:
+      contents: write
+      packages: write
     env:
       IMAGE_TAG: make-flippy:${{ github.sha }}
-
+      UPSTREAM_SHA: ${{ needs.check-upstream.outputs.upstream-sha }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Clone upstream repository and checkout upstream SHA
+        shell: bash
+        run: |
+          git clone https://github.com/rlguy/Blender-FLIP-Fluids.git upstream-repo
+          cd upstream-repo
+          git fetch --all
+          if [ -z "$UPSTREAM_SHA" ]; then
+            echo "ERROR: UPSTREAM_SHA is empty — aborting. Check the 'check-upstream' job logs."
+            exit 1
+          fi
+          git checkout "$UPSTREAM_SHA"
 
       - name: Build the Docker Image
         run: |
-          docker build -f Dockerfile -t $env:IMAGE_TAG .
+          docker build -f Dockerfile -t $env:IMAGE_TAG ./upstream-repo
 
-      - name: Run the Docker Image
+      - name: Run the Docker Image (detached)
         run: |
-          docker run $env:IMAGE_TAG
+          docker run -d --name flippy_build $env:IMAGE_TAG
 
       - name: Copy Plugin Directory from Docker Container
-        shell: powershell
+        shell: pwsh
         run: |
-          docker cp "$(docker ps -aq --filter "ancestor=$env:IMAGE_TAG"):/flop/build/bl_flip_fluids/flip_fluids_addon" "./flip_fluids"
+          $cid = (docker ps -aq --filter "name=flippy_build")
+          if (-not $cid) {
+            Write-Error "No container found for flippy_build"
+            exit 1
+          }
+          Remove-Item -Recurse -Force -ErrorAction SilentlyContinue "./flip_fluids"
+          docker cp "${cid}:/flop/build/bl_flip_fluids/flip_fluids_addon" "./flip_fluids"
+          docker rm -f $cid
 
       - name: Create ZIP Archive
-        shell: powershell
+        shell: pwsh
         run: |
-          Compress-Archive -Path "flip_fluids\*" -DestinationPath "flip_fluids.zip"
+          if (Test-Path "./flip_fluids") {
+            Remove-Item -Force -ErrorAction SilentlyContinue "./flip_fluids.zip"
+            Compress-Archive -Path "flip_fluids\*" -DestinationPath "flip_fluids.zip"
+          } else {
+            Write-Error "flip_fluids directory not found"
+            exit 1
+          }
 
       - name: Generate Tag Name
         id: tag
-        shell: powershell
+        shell: pwsh
         run: |
           $timestamp = Get-Date -Format "yyyy.MM.dd.HHmm"
-          $short_sha = "${{ github.sha }}".Substring(0,7)
+          $short_sha = "${{ env.UPSTREAM_SHA }}".Substring(0,7)
           $tag_name = "v$timestamp-$short_sha"
           echo "tag_name=$tag_name" >> $env:GITHUB_OUTPUT
           echo "timestamp=$timestamp" >> $env:GITHUB_OUTPUT
@@ -58,17 +150,13 @@ jobs:
           release_name: FLIP Fluids Build ${{ steps.tag.outputs.timestamp }}
           body: |
             🌊 **FLIP Fluids Addon Build**
-
-            Automated build from commit `${{ github.sha }}`
-
+            Automated build from upstream commit `${{ env.UPSTREAM_SHA }}`
             Build your own [here](https://github.com/rlguy/Blender-FLIP-Fluids), or buy the full version [here](https://blendermarket.com/products/flipfluids). As far as I know, the only difference is that the paid version has premade materials.
-
             **Build Information:**
-            - Commit: ${{ github.sha }}
-            - Branch: ${{ github.ref_name }}
+            - Upstream Commit: ${{ env.UPSTREAM_SHA }}
+            - Branch: main
             - Build Date: ${{ steps.tag.outputs.timestamp }}
-
-            **Full Changelog**: https://github.com/nroggendorff/flip-fluids/compare/${{ steps.tag.outputs.tag_name }}...${{ github.sha }}
+            **Full Changelog**: https://github.com/rlguy/Blender-FLIP-Fluids/commits/main
           draft: false
           prerelease: false
 
@@ -81,3 +169,19 @@ jobs:
           asset_path: ./flip_fluids.zip
           asset_name: flip_fluids_${{ steps.tag.outputs.tag_name }}.zip
           asset_content_type: application/zip
+
+      - name: Update upstream tracking branch
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git checkout --orphan upstream-tracking-temp
+          rm -rf ./* || true
+          echo "${{ env.UPSTREAM_SHA }}" > .upstream-sha
+          git add .upstream-sha
+          git commit -m "Track upstream SHA: ${{ env.UPSTREAM_SHA }}"
+
+          git branch -D upstream-tracking 2>/dev/null || true
+          git branch -m upstream-tracking
+          git push origin upstream-tracking --force
