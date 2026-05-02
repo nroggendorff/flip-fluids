@@ -154,9 +154,9 @@ jobs:
             Build your own [here](https://github.com/rlguy/Blender-FLIP-Fluids), or buy the full version [here](https://blendermarket.com/products/flipfluids). As far as I know, the only difference is that the paid version has premade materials.
             **Build Information:**
             - Upstream Commit: ${{ env.UPSTREAM_SHA }}
-            - Branch: main
+            - Branch: master
             - Build Date: ${{ steps.tag.outputs.timestamp }}
-            **Full Changelog**: https://github.com/rlguy/Blender-FLIP-Fluids/commits/main
+            **Full Changelog**: https://github.com/rlguy/Blender-FLIP-Fluids/commits/master
           draft: false
           prerelease: false
 
