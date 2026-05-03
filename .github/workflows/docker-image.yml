@@ -107,6 +107,13 @@ jobs:
         run: |
           docker run -d --name flippy_build $env:IMAGE_TAG
 
+      - name: Wait for build to complete
+        shell: pwsh
+        run: |
+          $code = docker wait flippy_build
+          docker logs flippy_build
+          exit [int]$code
+
       - name: Copy Plugin Directory from Docker Container
         shell: pwsh
         run: |
@@ -140,16 +147,18 @@ jobs:
           echo "tag_name=$tag_name" >> $env:GITHUB_OUTPUT
           echo "timestamp=$timestamp" >> $env:GITHUB_OUTPUT
 
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Rename ZIP for release asset name
+        shell: pwsh
+        run: |
+          Move-Item -Force "./flip_fluids.zip" "./flip_fluids_${{ steps.tag.outputs.tag_name }}.zip"
+
+      - name: Create Release and Upload Asset
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tag.outputs.tag_name }}
-          release_name: FLIP Fluids Build ${{ steps.tag.outputs.timestamp }}
+          name: FLIP Fluids Build ${{ steps.tag.outputs.timestamp }}
           body: |
-            🌊 **FLIP Fluids Addon Build**
+            **FLIP Fluids Addon Build**
             Automated build from upstream commit `${{ env.UPSTREAM_SHA }}`
             Build your own [here](https://github.com/rlguy/Blender-FLIP-Fluids), or buy the full version [here](https://blendermarket.com/products/flipfluids). As far as I know, the only difference is that the paid version has premade materials.
             **Build Information:**
@@ -157,18 +166,11 @@ jobs:
             - Branch: master
             - Build Date: ${{ steps.tag.outputs.timestamp }}
             **Full Changelog**: https://github.com/rlguy/Blender-FLIP-Fluids/commits/master
+          files: flip_fluids_${{ steps.tag.outputs.tag_name }}.zip
           draft: false
           prerelease: false
-
-      - name: Upload Release Asset
-        uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./flip_fluids.zip
-          asset_name: flip_fluids_${{ steps.tag.outputs.tag_name }}.zip
-          asset_content_type: application/zip
 
       - name: Update upstream tracking branch
         shell: bash
